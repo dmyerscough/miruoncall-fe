@@ -3,12 +3,11 @@
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
 import { SiteHeader } from "@/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 
-import data from "./data.json"
+import { z } from "zod"
+
+import { incidentSchema } from "@/lib/schemas/incidents"
+import data from "./incidents.json"
 
 function Dashboard({ params }: { params: { team: string } }) {
   return (
@@ -20,7 +19,7 @@ function Dashboard({ params }: { params: { team: string } }) {
               <div className="px-4 lg:px-6">
                 <ChartAreaInteractive />
               </div>
-              <DataTable data={data} />
+              <DataTable data={data.incidents as z.infer<typeof incidentSchema>[]} />
             </div>
           </div>
         </div>

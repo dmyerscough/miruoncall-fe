@@ -32,17 +32,6 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
 
-
-// const chartData = [
-//   { date: "2025-05-25", high: 0, low: 0 },
-//   { date: "2025-05-26", high: 0, low: 0 },
-//   { date: "2025-05-27", high: 2, low: 6 },
-//   { date: "2025-05-28", high: 6, low: 10 },
-//   { date: "2025-05-29", high: 1, low: 4 },
-//   { date: "2025-05-30", high: 0, low: 4 },
-//   { date: "2025-05-31", high: 0, low: 0 },
-// ]
-
 const chartData = {
   "incidents": [
     {

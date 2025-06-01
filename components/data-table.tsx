@@ -45,8 +45,9 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table"
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
-import { toast } from "sonner"
+
+import { incidentSchema } from "@/lib/schemas/incidents"
+
 import { z } from "zod"
 
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -93,15 +94,6 @@ import {
   TabsContent,
 } from "@/components/ui/tabs"
 
-export const schema = z.object({
-  id: z.number(),
-  header: z.string(),
-  type: z.string(),
-  status: z.string(),
-  target: z.string(),
-  limit: z.string(),
-  reviewer: z.string(),
-})
 
 // Create a separate component for the drag handle
 function DragHandle({ id }: { id: number }) {
@@ -123,7 +115,7 @@ function DragHandle({ id }: { id: number }) {
   )
 }
 
-const columns: ColumnDef<z.infer<typeof schema>>[] = [
+const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
   {
     id: "drag",
     header: () => null,
@@ -156,20 +148,20 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "name",
-    header: "Name",
+    accessorKey: "title",
+    header: "Title",
     cell: ({ row }) => {
       return <TableCellViewer item={row.original} />
     },
     enableHiding: false,
   },
   {
-    accessorKey: "trigger",
-    header: "Triggered",
+    accessorKey: "created_at",
+    header: "Created At",
     cell: ({ row }) => (
       <div className="w-32">
         <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.original.type}
+          {new Date(row.original.created_at).toLocaleDateString()}
         </Badge>
       </div>
     ),
@@ -179,154 +171,38 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     header: "Status",
     cell: ({ row }) => (
       <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
+        {row.original.status === "resolved" ? (
           <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
+        ) : row.original.status === "acknowledged" ? (
+          <IconLoader className="fill-yellow-500 dark:fill-yellow-400" />
         ) : (
-          <IconLoader />
+          <IconLoader className="fill-red-500 dark:fill-red-400" />
         )}
         {row.original.status}
       </Badge>
     ),
   },
   {
-    accessorKey: "actionable",
-    header: "Actionable",
+    accessorKey: "urgency",
+    header: "Urgency",
     cell: ({ row }) => (
-      <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.status}
+      <Badge variant={row.original.urgency === "high" ? "destructive" : "secondary"} className="px-1.5">
+        {row.original.urgency}
       </Badge>
     ),
   },
   {
-    accessorKey: "notes",
+    accessorKey: "annotation",
     header: "Notes",
     cell: ({ row }) => (
       <Badge variant="outline" className="text-muted-foreground px-1.5">
-        {row.original.status === "Done" ? (
-          <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-        ) : (
-          <IconLoader />
-        )}
-        {row.original.status}
+        {row.original.annotation ? "Yes" : "No"}
       </Badge>
     ),
-  },
-  // {
-  //   accessorKey: "target",
-  //   header: () => <div className="w-full text-right">Target</div>,
-  //   cell: ({ row }) => (
-  //     <form
-  //       onSubmit={(e) => {
-  //         e.preventDefault()
-  //         toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-  //           loading: `Saving ${row.original.header}`,
-  //           success: "Done",
-  //           error: "Error",
-  //         })
-  //       }}
-  //     >
-  //       <Label htmlFor={`${row.original.id}-target`} className="sr-only">
-  //         Target
-  //       </Label>
-  //       <Input
-  //         className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-  //         defaultValue={row.original.target}
-  //         id={`${row.original.id}-target`}
-  //       />
-  //     </form>
-  //   ),
-  // },
-  // {
-  //   accessorKey: "limit",
-  //   header: () => <div className="w-full text-right">Limit</div>,
-  //   cell: ({ row }) => (
-  //     <form
-  //       onSubmit={(e) => {
-  //         e.preventDefault()
-  //         toast.promise(new Promise((resolve) => setTimeout(resolve, 1000)), {
-  //           loading: `Saving ${row.original.header}`,
-  //           success: "Done",
-  //           error: "Error",
-  //         })
-  //       }}
-  //     >
-  //       <Label htmlFor={`${row.original.id}-limit`} className="sr-only">
-  //         Limit
-  //       </Label>
-  //       <Input
-  //         className="hover:bg-input/30 focus-visible:bg-background dark:hover:bg-input/30 dark:focus-visible:bg-input/30 h-8 w-16 border-transparent bg-transparent text-right shadow-none focus-visible:border dark:bg-transparent"
-  //         defaultValue={row.original.limit}
-  //         id={`${row.original.id}-limit`}
-  //       />
-  //     </form>
-  //   ),
-  // },
-  // {
-  //   accessorKey: "reviewer",
-  //   header: "Reviewer",
-  //   cell: ({ row }) => {
-  //     const isAssigned = row.original.reviewer !== "Assign reviewer"
-
-  //     if (isAssigned) {
-  //       return row.original.reviewer
-  //     }
-
-  //     return (
-  //       <>
-  //         <Label htmlFor={`${row.original.id}-reviewer`} className="sr-only">
-  //           Reviewer
-  //         </Label>
-  //         <Select>
-  //           <SelectTrigger
-  //             className="w-38 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate"
-  //             size="sm"
-  //             id={`${row.original.id}-reviewer`}
-  //           >
-  //             <SelectValue placeholder="Assign reviewer" />
-  //           </SelectTrigger>
-  //           <SelectContent align="end">
-  //             <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-  //             <SelectItem value="Jamik Tashpulatov">
-  //               Jamik Tashpulatov
-  //             </SelectItem>
-  //           </SelectContent>
-  //         </Select>
-  //       </>
-  //     )
-  //   },
-  // },
-  // {
-  //   id: "actions",
-  //   cell: () => (
-  //     <DropdownMenu>
-  //       <DropdownMenuTrigger asChild>
-  //         <Button
-  //           variant="ghost"
-  //           className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-  //           size="icon"
-  //         >
-  //           <IconDotsVertical />
-  //           <span className="sr-only">Open menu</span>
-  //         </Button>
-  //       </DropdownMenuTrigger>
-  //       <DropdownMenuContent align="end" className="w-32">
-  //         <DropdownMenuItem>Edit</DropdownMenuItem>
-  //         <DropdownMenuItem>Make a copy</DropdownMenuItem>
-  //         <DropdownMenuItem>Favorite</DropdownMenuItem>
-  //         <DropdownMenuSeparator />
-  //         <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-  //       </DropdownMenuContent>
-  //     </DropdownMenu>
-  //   ),
-  // },
+  }
 ]
 
-function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
+function DraggableRow({ row }: { row: Row<z.infer<typeof incidentSchema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
   })
@@ -354,7 +230,7 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
 export function DataTable({
   data: initialData,
 }: {
-  data: z.infer<typeof schema>[]
+  data: z.infer<typeof incidentSchema>[]
 }) {
   const [data, setData] = React.useState(() => initialData)
   const [rowSelection, setRowSelection] = React.useState({})
@@ -421,28 +297,6 @@ export function DataTable({
       defaultValue="outline"
       className="w-full flex-col justify-start gap-6"
     >
-      <div className="flex items-center justify-between px-4 lg:px-6">
-        <Label htmlFor="view-selector" className="sr-only">
-          View
-        </Label>
-        <Select defaultValue="outline">
-          <SelectTrigger
-            className="flex w-fit @4xl/main:hidden"
-            size="sm"
-            id="view-selector"
-          >
-            <SelectValue placeholder="Select a view" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="outline">Outline</SelectItem>
-            <SelectItem value="past-performance">Past Performance</SelectItem>
-            <SelectItem value="key-personnel">Key Personnel</SelectItem>
-            <SelectItem value="focus-documents">Focus Documents</SelectItem>
-          </SelectContent>
-        </Select>
-
-
-      </div>
       <TabsContent
         value="outline"
         className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
@@ -595,133 +449,515 @@ export function DataTable({
   )
 }
 
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-]
-
-const chartConfig = {
-  desktop: {
-    label: "Desktop",
-    color: "var(--primary)",
+const chartData = {
+  "incidents": [
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Tue, 27 May 2025 00:12:31 GMT",
+      "description": "[FIRING:1] gcp-us-central1-dca-wl-lab-003 config-reloader (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "id": 14388,
+      "incident_id": "Q0WHRE9UJ5ERON",
+      "status": "resolved",
+      "summary": "[#7559400] [FIRING:1] gcp-us-central1-dca-wl-lab-003 config-reloader (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] gcp-us-central1-dca-wl-lab-003 config-reloader (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Tue, 27 May 2025 14:17:31 GMT",
+      "description": "[FIRING:1] gcp-us-central1-dca-wl-lab-003 config-reloader (ContainerHighThrottleRate alloy-cluster-1 warning dgxc_observability)",
+      "id": 14410,
+      "incident_id": "Q1F6PL9SVWDGXX",
+      "status": "resolved",
+      "summary": "[#7560702] [FIRING:1] gcp-us-central1-dca-wl-lab-003 config-reloader (ContainerHighThrottleRate alloy-cluster-1 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] gcp-us-central1-dca-wl-lab-003 config-reloader (ContainerHighThrottleRate alloy-cluster-1 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Tue, 27 May 2025 15:27:14 GMT",
+      "description": "[FIRING:1]  (OtelGatewayReceiverRefusedMetrics dgxc-us-west-2-aws-prod-001 otel metrics-otel-gateway-58b747d546-c6d52 otel-gateway critical dgxc_observability)",
+      "id": 14412,
+      "incident_id": "Q01WJ5A5ZI2WIK",
+      "status": "resolved",
+      "summary": "[#7560804] [FIRING:1]  (OtelGatewayReceiverRefusedMetrics dgxc-us-west-2-aws-prod-001 otel metrics-otel-gateway-58b747d546-c6d52 otel-gateway critical dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (OtelGatewayReceiverRefusedMetrics dgxc-us-west-2-aws-prod-001 otel metrics-otel-gateway-58b747d546-c6d52 otel-gateway critical dgxc_observability)",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Tue, 27 May 2025 16:09:29 GMT",
+      "description": "[FIRING:1] dgxc-us-east-1-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-98-194.ec2.internal kubelet telemetry ip-100-65-98-194.ec2.internal NSPECT-A87B-PMQV storage-mimir-store-gateway-us-east-1a-37 warning dgxc_observability)",
+      "id": 14415,
+      "incident_id": "Q1CVZYZBVJDBKU",
+      "status": "resolved",
+      "summary": "[#7560890] [FIRING:1] dgxc-us-east-1-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-98-194.ec2.internal kubelet telemetry ip-100-65-98-194.ec2.internal NSPECT-A87B-PMQV storage-mimir-store-gateway-us-east-1a-37 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-east-1-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-98-194.ec2.internal kubelet telemetry ip-100-65-98-194.ec2.internal NSPECT-A87B-PMQV storage-mimir-store-gateway-us-east-1a-37 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Tue, 27 May 2025 16:50:02 GMT",
+      "description": "[FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "id": 14417,
+      "incident_id": "Q27G4H0GZVI6Q1",
+      "status": "resolved",
+      "summary": "[#7560974] [FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Tue, 27 May 2025 17:37:31 GMT",
+      "description": "[FIRING:1] dgxc-us-east-1-aws-prod-001 kube-state-metrics (PodDisruptionBudgetViolation http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-47pbm mimir-store-gateway opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability)",
+      "id": 14419,
+      "incident_id": "Q20AAULVYZY78B",
+      "status": "resolved",
+      "summary": "[#7561050] [FIRING:1] dgxc-us-east-1-aws-prod-001 kube-state-metrics (PodDisruptionBudgetViolation http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-47pbm mimir-store-gateway opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-east-1-aws-prod-001 kube-state-metrics (PodDisruptionBudgetViolation http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-47pbm mimir-store-gateway opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Tue, 27 May 2025 23:33:17 GMT",
+      "description": "[FIRING:2]  (MimirRolloutStuck dgxc-us-east-1-aws-prod-001 kube-state-metrics http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV mimir opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-47pbm opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability statefulset)",
+      "id": 14421,
+      "incident_id": "Q2OAAH7YB644G8",
+      "status": "resolved",
+      "summary": "[#7561995] [FIRING:2]  (MimirRolloutStuck dgxc-us-east-1-aws-prod-001 kube-state-metrics http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV mimir opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-47pbm opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability statefulset)",
+      "team": 98,
+      "title": "[FIRING:2]  (MimirRolloutStuck dgxc-us-east-1-aws-prod-001 kube-state-metrics http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV mimir opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-47pbm opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability statefulset)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": {
+        "created_at": "Thu, 29 May 2025 06:37:19 GMT",
+        "summary": "Test annotation"
+      },
+      "created_at": "Tue, 27 May 2025 23:49:14 GMT",
+      "description": "[FIRING:1]  (OtelGatewayReceiverRefusedMetrics dgxc-us-west-2-aws-prod-001 otel metrics-otel-gateway-59ffc5495b-8bs8q otel-gateway critical dgxc_observability)",
+      "id": 14424,
+      "incident_id": "Q19JSYBG5MNVP4",
+      "status": "resolved",
+      "summary": "[#7562054] [FIRING:1]  (OtelGatewayReceiverRefusedMetrics dgxc-us-west-2-aws-prod-001 otel metrics-otel-gateway-59ffc5495b-8bs8q otel-gateway critical dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (OtelGatewayReceiverRefusedMetrics dgxc-us-west-2-aws-prod-001 otel metrics-otel-gateway-59ffc5495b-8bs8q otel-gateway critical dgxc_observability)",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 00:33:10 GMT",
+      "description": "We need tcarr/DGXOBSERV-1713 deployed ",
+      "id": 14426,
+      "incident_id": "Q1URVGSZJB2TD0",
+      "status": "acknowledged",
+      "summary": "[#7562186] We need tcarr/DGXOBSERV-1713 deployed ",
+      "team": 98,
+      "title": "We need tcarr/DGXOBSERV-1713 deployed ",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 06:04:29 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-250-100.us-west-2.compute.internal kubelet telemetry ip-100-65-250-100.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-0 warning dgxc_observability)",
+      "id": 107685,
+      "incident_id": "Q0VU1E0675G9QC",
+      "status": "resolved",
+      "summary": "[#7562759] [FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-250-100.us-west-2.compute.internal kubelet telemetry ip-100-65-250-100.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-250-100.us-west-2.compute.internal kubelet telemetry ip-100-65-250-100.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 06:04:31 GMT",
+      "description": "[FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-0 warning dgxc_observability)",
+      "id": 107690,
+      "incident_id": "Q1HAKHDERVTYWY",
+      "status": "resolved",
+      "summary": "[#7562760] [FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 07:54:29 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-250-100.us-west-2.compute.internal kubelet telemetry ip-100-65-250-100.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-0 warning dgxc_observability)",
+      "id": 107693,
+      "incident_id": "Q33I9YPYGH0CZK",
+      "status": "resolved",
+      "summary": "[#7562956] [FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-250-100.us-west-2.compute.internal kubelet telemetry ip-100-65-250-100.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-250-100.us-west-2.compute.internal kubelet telemetry ip-100-65-250-100.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 07:54:37 GMT",
+      "description": "[FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-0 warning dgxc_observability)",
+      "id": 107696,
+      "incident_id": "Q197ET7M15DG6C",
+      "status": "resolved",
+      "summary": "[#7562957] [FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 08:37:29 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-148-15.us-west-2.compute.internal kubelet telemetry ip-100-65-148-15.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-1 warning dgxc_observability)",
+      "id": 107698,
+      "incident_id": "Q2AXIZCT4CVH2I",
+      "status": "resolved",
+      "summary": "[#7563029] [FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-148-15.us-west-2.compute.internal kubelet telemetry ip-100-65-148-15.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-1 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-148-15.us-west-2.compute.internal kubelet telemetry ip-100-65-148-15.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-1 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 08:37:31 GMT",
+      "description": "[FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-1 warning dgxc_observability)",
+      "id": 107700,
+      "incident_id": "Q17QYIEZO8DZJ3",
+      "status": "resolved",
+      "summary": "[#7563030] [FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-1 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-1 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 08:45:30 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove90Pct ip-100-65-148-15.us-west-2.compute.internal kubelet telemetry ip-100-65-148-15.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-1 critical dgxc_observability)",
+      "id": 107702,
+      "incident_id": "Q35MFH1623SMS7",
+      "status": "resolved",
+      "summary": "[#7563041] [FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove90Pct ip-100-65-148-15.us-west-2.compute.internal kubelet telemetry ip-100-65-148-15.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-1 critical dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove90Pct ip-100-65-148-15.us-west-2.compute.internal kubelet telemetry ip-100-65-148-15.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-1 critical dgxc_observability)",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 20:01:31 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 alloy (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "id": 107704,
+      "incident_id": "Q2ZVCNI72JEQGI",
+      "status": "resolved",
+      "summary": "[#7564209] [FIRING:1] dgxc-us-west-2-aws-prod-001 alloy (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 alloy (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 20:09:29 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 metrics-generator (HighMemoryUtilization tempo-metrics-generator-2 critical dgxc_observability)",
+      "id": 107705,
+      "incident_id": "Q20J6SV8C4PJFW",
+      "status": "resolved",
+      "summary": "[#7564220] [FIRING:1] dgxc-us-west-2-aws-prod-001 metrics-generator (HighMemoryUtilization tempo-metrics-generator-2 critical dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 metrics-generator (HighMemoryUtilization tempo-metrics-generator-2 critical dgxc_observability)",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 20:13:33 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PodContainerOutOfMemory tempo-metrics critical dgxc_observability)",
+      "id": 107708,
+      "incident_id": "Q2I0VCG3NMWAIS",
+      "status": "resolved",
+      "summary": "[#7564245] [FIRING:1] dgxc-us-west-2-aws-prod-001 (PodContainerOutOfMemory tempo-metrics critical dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PodContainerOutOfMemory tempo-metrics critical dgxc_observability)",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 20:25:30 GMT",
+      "description": "[FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (PodContainerWaitingDueToImageOrCrashIssues http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV tempo-metrics-generator-2 CrashLoopBackOff opentelemetry-kube-stack-kube-state-metrics critical dgxc_observability 01ab9a2c-895f-4365-a530-33e7a7cd9935)",
+      "id": 107710,
+      "incident_id": "Q08MNCGVW8EMOS",
+      "status": "resolved",
+      "summary": "[#7564264] [FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (PodContainerWaitingDueToImageOrCrashIssues http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV tempo-metrics-generator-2 CrashLoopBackOff opentelemetry-kube-stack-kube-state-metrics critical dgxc_observability 01ab9a2c-895f-4365-a530-33e7a7cd9935)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (PodContainerWaitingDueToImageOrCrashIssues http 100.65.181.169:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV tempo-metrics-generator-2 CrashLoopBackOff opentelemetry-kube-stack-kube-state-metrics critical dgxc_observability 01ab9a2c-895f-4365-a530-33e7a7cd9935)",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 20:27:30 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 metrics-generator (HighPodRestartRate tempo-metrics-generator-1 critical dgxc_observability)",
+      "id": 107712,
+      "incident_id": "Q3OYSFU6Y9ZAGM",
+      "status": "resolved",
+      "summary": "[#7564267] [FIRING:1] dgxc-us-west-2-aws-prod-001 metrics-generator (HighPodRestartRate tempo-metrics-generator-1 critical dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 metrics-generator (HighPodRestartRate tempo-metrics-generator-1 critical dgxc_observability)",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 20:43:31 GMT",
+      "description": "[FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (ContainerHighThrottleRate tempo-metrics-generator-0 warning dgxc_observability)",
+      "id": 107714,
+      "incident_id": "Q1KLCKJBQ699Y0",
+      "status": "resolved",
+      "summary": "[#7564280] [FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (ContainerHighThrottleRate tempo-metrics-generator-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (ContainerHighThrottleRate tempo-metrics-generator-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 20:49:31 GMT",
+      "description": "[FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (ContainerHighThrottleRate tempo-metrics-generator-2 warning dgxc_observability)",
+      "id": 107719,
+      "incident_id": "Q0DZ4K7B22D9J1",
+      "status": "resolved",
+      "summary": "[#7564290] [FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (ContainerHighThrottleRate tempo-metrics-generator-2 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-east-1-aws-prod-001 metrics-generator (ContainerHighThrottleRate tempo-metrics-generator-2 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Wed, 28 May 2025 22:58:32 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 alloy (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "id": 107721,
+      "incident_id": "Q24C9C5AQAY0HV",
+      "status": "resolved",
+      "summary": "[#7564605] [FIRING:1] dgxc-us-west-2-aws-prod-001 alloy (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 alloy (ContainerHighThrottleRate alloy-cluster-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Thu, 29 May 2025 13:43:29 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-113-153.us-west-2.compute.internal kubelet telemetry ip-100-65-113-153.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-2 warning dgxc_observability)",
+      "id": 108966,
+      "incident_id": "Q1BX4Y7O1E0LHL",
+      "status": "resolved",
+      "summary": "[#7566262] [FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-113-153.us-west-2.compute.internal kubelet telemetry ip-100-65-113-153.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-2 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove80Pct ip-100-65-113-153.us-west-2.compute.internal kubelet telemetry ip-100-65-113-153.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-2 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Thu, 29 May 2025 13:43:31 GMT",
+      "description": "[FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-2 warning dgxc_observability)",
+      "id": 108967,
+      "incident_id": "Q08PHH9U8N8EB6",
+      "status": "resolved",
+      "summary": "[#7566263] [FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-2 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (MimirCompactorAboutToRunOutOfDiskSpace dgxc-us-west-2-aws-prod-001 mimir storage-mimir-compactor-2 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Thu, 29 May 2025 13:57:29 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove90Pct ip-100-65-113-153.us-west-2.compute.internal kubelet telemetry ip-100-65-113-153.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-2 critical dgxc_observability)",
+      "id": 108969,
+      "incident_id": "Q10X07WGW3CB12",
+      "status": "resolved",
+      "summary": "[#7566279] [FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove90Pct ip-100-65-113-153.us-west-2.compute.internal kubelet telemetry ip-100-65-113-153.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-2 critical dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 (PVCUtilizationAbove90Pct ip-100-65-113-153.us-west-2.compute.internal kubelet telemetry ip-100-65-113-153.us-west-2.compute.internal NSPECT-A87B-PMQV storage-mimir-compactor-2 critical dgxc_observability)",
+      "urgency": "high"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Thu, 29 May 2025 18:11:30 GMT",
+      "description": "[FIRING:1] dgxc-us-west-2-aws-prod-001 kube-state-metrics (PodDisruptionBudgetViolation http 100.65.137.197:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-69xf5 mimir-ingester opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability)",
+      "id": 108971,
+      "incident_id": "Q0NF7NFN5WFIOX",
+      "status": "resolved",
+      "summary": "[#7566779] [FIRING:1] dgxc-us-west-2-aws-prod-001 kube-state-metrics (PodDisruptionBudgetViolation http 100.65.137.197:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-69xf5 mimir-ingester opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-us-west-2-aws-prod-001 kube-state-metrics (PodDisruptionBudgetViolation http 100.65.137.197:8080 kube-state-metrics telemetry NSPECT-A87B-PMQV opentelemetry-kube-stack-kube-state-metrics-75c7c488bb-69xf5 mimir-ingester opentelemetry-kube-stack-kube-state-metrics warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Thu, 29 May 2025 20:24:16 GMT",
+      "description": "[FIRING:1]  (MimirCacheRequestErrors dgxc-us-east-1-aws-prod-001 index-cache telemetry set mimir warning dgxc_observability)",
+      "id": 108972,
+      "incident_id": "Q2GI3N9WSKWU71",
+      "status": "resolved",
+      "summary": "[#7567138] [FIRING:1]  (MimirCacheRequestErrors dgxc-us-east-1-aws-prod-001 index-cache telemetry set mimir warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (MimirCacheRequestErrors dgxc-us-east-1-aws-prod-001 index-cache telemetry set mimir warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Fri, 30 May 2025 09:15:03 GMT",
+      "description": "[FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "id": 110243,
+      "incident_id": "Q0ID0O2R64KEAJ",
+      "status": "resolved",
+      "summary": "[#7568767] [FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Fri, 30 May 2025 15:28:03 GMT",
+      "description": "[FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "id": 110245,
+      "incident_id": "Q0TLSX5XCB0X99",
+      "status": "resolved",
+      "summary": "[#7569274] [FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (DatasourceInFlightRequests dgxc-us-east-1-aws-prod-002 grafana mimiruseast1 prometheus service 100.65.43.111:3000 grafana-spg telemetry NSPECT-A87B-PMQV grafana grafana-spg-6bbfd6cb79-wnrmx false grafana-spg warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Fri, 30 May 2025 16:30:32 GMT",
+      "description": "[FIRING:1] dgxc-ap-northeast-1-aws-prod-001 compactor (ContainerHighThrottleRate mimir-compactor-0 warning dgxc_observability)",
+      "id": 110248,
+      "incident_id": "Q3YFEOPO5MLB9E",
+      "status": "resolved",
+      "summary": "[#7569392] [FIRING:1] dgxc-ap-northeast-1-aws-prod-001 compactor (ContainerHighThrottleRate mimir-compactor-0 warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1] dgxc-ap-northeast-1-aws-prod-001 compactor (ContainerHighThrottleRate mimir-compactor-0 warning dgxc_observability)",
+      "urgency": "low"
+    },
+    {
+      "actionable": null,
+      "annotation": null,
+      "created_at": "Fri, 30 May 2025 21:24:02 GMT",
+      "description": "[FIRING:1]  (FailedNotificationRequest dgxc-us-east-1-aws-prod-002 grafana service 100.65.7.106:3000 slack grafana-spg telemetry NSPECT-A87B-PMQV 4 grafana grafana-spg-6bbfd6cb79-mnjn7 grafana-spg warning dgxc_observability)",
+      "id": 110251,
+      "incident_id": "Q13SH0XE1MCQXI",
+      "status": "resolved",
+      "summary": "[#7570087] [FIRING:1]  (FailedNotificationRequest dgxc-us-east-1-aws-prod-002 grafana service 100.65.7.106:3000 slack grafana-spg telemetry NSPECT-A87B-PMQV 4 grafana grafana-spg-6bbfd6cb79-mnjn7 grafana-spg warning dgxc_observability)",
+      "team": 98,
+      "title": "[FIRING:1]  (FailedNotificationRequest dgxc-us-east-1-aws-prod-002 grafana service 100.65.7.106:3000 slack grafana-spg telemetry NSPECT-A87B-PMQV 4 grafana grafana-spg-6bbfd6cb79-mnjn7 grafana-spg warning dgxc_observability)",
+      "urgency": "low"
+    }
+  ],
+  "summary": {
+    "2025-05-25": {
+      "high": 0,
+      "low": 0
+    },
+    "2025-05-26": {
+      "high": 0,
+      "low": 0
+    },
+    "2025-05-27": {
+      "high": 2,
+      "low": 6
+    },
+    "2025-05-28": {
+      "high": 6,
+      "low": 10
+    },
+    "2025-05-29": {
+      "high": 1,
+      "low": 4
+    },
+    "2025-05-30": {
+      "high": 0,
+      "low": 4
+    },
+    "2025-05-31": {
+      "high": 0,
+      "low": 0
+    }
   },
-  mobile: {
-    label: "Mobile",
-    color: "var(--primary)",
-  },
-} satisfies ChartConfig
+  "team": {
+    "alias": null,
+    "created_at": "2025-05-28T05:11:24",
+    "id": 98,
+    "last_checked": "2025-06-01T06:12:45.616871",
+    "name": "DGXCloud Observability (Panoptes)",
+    "summary": "DGXCloud Observability (Panoptes)",
+    "team_id": "PJ1BDNM"
+  }
+}
 
-function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
+function TableCellViewer({ item }: { item: z.infer<typeof incidentSchema> }) {
   const isMobile = useIsMobile()
 
   return (
     <Drawer direction={isMobile ? "bottom" : "right"}>
       <DrawerTrigger asChild>
         <Button variant="link" className="text-foreground w-fit px-0 text-left">
-          {item.header}
+          {item.title}
         </Button>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="gap-1">
-          <DrawerTitle>{item.header}</DrawerTitle>
+          <DrawerTitle>{item.title}</DrawerTitle>
           <DrawerDescription>
-            Showing total visitors for the last 6 months
+            Incident Details - {item.incident_id}
           </DrawerDescription>
         </DrawerHeader>
         <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          {!isMobile && (
-            <>
-              <ChartContainer config={chartConfig}>
-                <AreaChart
-                  accessibilityLayer
-                  data={chartData}
-                  margin={{
-                    left: 0,
-                    right: 10,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                    hide
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
-                  />
-                  <Area
-                    dataKey="mobile"
-                    type="natural"
-                    fill="var(--color-mobile)"
-                    fillOpacity={0.6}
-                    stroke="var(--color-mobile)"
-                    stackId="a"
-                  />
-                  <Area
-                    dataKey="desktop"
-                    type="natural"
-                    fill="var(--color-desktop)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-desktop)"
-                    stackId="a"
-                  />
-                </AreaChart>
-              </ChartContainer>
-              <Separator />
-              <div className="grid gap-2">
-                <div className="flex gap-2 leading-none font-medium">
-                  Trending up by 5.2% this month{" "}
-                  <IconTrendingUp className="size-4" />
-                </div>
-                <div className="text-muted-foreground">
-                  Showing total visitors for the last 6 months. This is just
-                  some random text to test the layout. It spans multiple lines
-                  and should wrap around.
-                </div>
-              </div>
-              <Separator />
-            </>
-          )}
+          <div className="grid gap-2">
+            <div className="flex gap-2 leading-none font-medium">
+              Status: {item.status} | Urgency: {item.urgency}
+            </div>
+            <div className="text-muted-foreground">
+              {item.description}
+            </div>
+          </div>
+          <Separator />
           <form className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
-              <Label htmlFor="header">Header</Label>
-              <Input id="header" defaultValue={item.header} />
+              <Label htmlFor="title">Title</Label>
+              <Input id="title" defaultValue={item.title} />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="type">Type</Label>
-                <Select defaultValue={item.type}>
-                  <SelectTrigger id="type" className="w-full">
-                    <SelectValue placeholder="Select a type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Table of Contents">
-                      Table of Contents
-                    </SelectItem>
-                    <SelectItem value="Executive Summary">
-                      Executive Summary
-                    </SelectItem>
-                    <SelectItem value="Technical Approach">
-                      Technical Approach
-                    </SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Capabilities">Capabilities</SelectItem>
-                    <SelectItem value="Focus Documents">
-                      Focus Documents
-                    </SelectItem>
-                    <SelectItem value="Narrative">Narrative</SelectItem>
-                    <SelectItem value="Cover Page">Cover Page</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="flex flex-col gap-3">
                 <Label htmlFor="status">Status</Label>
                 <Select defaultValue={item.status}>
@@ -729,38 +965,35 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
                     <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Done">Done</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Not Started">Not Started</SelectItem>
+                    <SelectItem value="triggered">Triggered</SelectItem>
+                    <SelectItem value="acknowledged">Acknowledged</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Label htmlFor="urgency">Urgency</Label>
+                <Select defaultValue={item.urgency}>
+                  <SelectTrigger id="urgency" className="w-full">
+                    <SelectValue placeholder="Select urgency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="target">Target</Label>
-                <Input id="target" defaultValue={item.target} />
-              </div>
-              <div className="flex flex-col gap-3">
-                <Label htmlFor="limit">Limit</Label>
-                <Input id="limit" defaultValue={item.limit} />
-              </div>
-            </div>
             <div className="flex flex-col gap-3">
-              <Label htmlFor="reviewer">Reviewer</Label>
-              <Select defaultValue={item.reviewer}>
-                <SelectTrigger id="reviewer" className="w-full">
-                  <SelectValue placeholder="Select a reviewer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Eddie Lake">Eddie Lake</SelectItem>
-                  <SelectItem value="Jamik Tashpulatov">
-                    Jamik Tashpulatov
-                  </SelectItem>
-                  <SelectItem value="Emily Whalen">Emily Whalen</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="description">Description</Label>
+              <Input id="description" defaultValue={item.description} />
             </div>
+            {item.annotation && (
+              <div className="flex flex-col gap-3">
+                <Label htmlFor="annotation">Annotation</Label>
+                <Input id="annotation" defaultValue={item.annotation.summary} />
+              </div>
+            )}
           </form>
         </div>
         <DrawerFooter>

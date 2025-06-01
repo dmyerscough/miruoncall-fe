@@ -256,11 +256,15 @@ function ChartLegendContent({
   payload,
   verticalAlign = "bottom",
   nameKey,
-}: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-    hideIcon?: boolean
-    nameKey?: string
-  }) {
+  onDataKeyClick,
+  hiddenSeries = [],
+}: {
+  className?: string
+  hideIcon?: boolean
+  onDataKeyClick?: (dataKey: string) => void
+  nameKey?: string
+  hiddenSeries?: string[]
+} & Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign">) {
   const { config } = useChart()
 
   if (!payload?.length) {
@@ -278,13 +282,17 @@ function ChartLegendContent({
       {payload.map((item) => {
         const key = `${nameKey || item.dataKey || "value"}`
         const itemConfig = getPayloadConfigFromPayload(config, item, key)
+        const isHidden = hiddenSeries.includes(key)
 
         return (
           <div
             key={item.value}
             className={cn(
-              "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3"
+              "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
+              onDataKeyClick && "cursor-pointer hover:opacity-80",
+              isHidden && "opacity-50"
             )}
+            onClick={() => onDataKeyClick?.(key)}
           >
             {itemConfig?.icon && !hideIcon ? (
               <itemConfig.icon />
@@ -292,7 +300,7 @@ function ChartLegendContent({
               <div
                 className="h-2 w-2 shrink-0 rounded-[2px]"
                 style={{
-                  backgroundColor: item.color,
+                  backgroundColor: isHidden ? "#ccc" : item.color,
                 }}
               />
             )}

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
@@ -61,12 +61,44 @@ const chartConfig = {
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("90d")
+  const [hiddenSeries, setHiddenSeries] = React.useState<string[]>([])
+  const [chartDimensions, setChartDimensions] = React.useState({ width: 0, height: 400 })
+  const containerRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     if (isMobile) {
       setTimeRange("7d")
     }
   }, [isMobile])
+
+  React.useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width } = entry.contentRect
+        setChartDimensions({
+          width: width > 0 ? width : 0,
+          height: 400
+        })
+      }
+    })
+
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [])
+
+  const handleLegendClick = (dataKey: string) => {
+    setHiddenSeries(prev =>
+      prev.includes(dataKey)
+        ? prev.filter(key => key !== dataKey)
+        : [...prev, dataKey]
+    )
+  }
 
   return (
     <Card className="@container/card">
@@ -112,9 +144,14 @@ export function ChartAreaInteractive() {
           </Select>
         </CardAction>
       </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        <ChartContainer config={chartConfig} style={{ height: 400}}>
-          <BarChart accessibilityLayer data={chartData}>
+      <CardContent ref={containerRef} className="px-2 pt-4 sm:px-6 sm:pt-6">
+        <ChartContainer config={chartConfig} style={{ height: chartDimensions.height, width: '100%' }}>
+          <BarChart
+            accessibilityLayer
+            data={chartData}
+            width={chartDimensions.width}
+            height={chartDimensions.height}
+          >
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="date"
@@ -122,19 +159,34 @@ export function ChartAreaInteractive() {
               tickMargin={10}
               axisLine={false}
             />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+            />
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-            <ChartLegend content={<ChartLegendContent />} />
+            <ChartLegend
+              content={(props) => (
+                <ChartLegendContent
+                  payload={props.payload}
+                  onDataKeyClick={handleLegendClick}
+                  hiddenSeries={hiddenSeries}
+                />
+              )}
+            />
             <Bar
               dataKey="high"
               stackId="a"
               fill="var(--color-high)"
               radius={[0, 0, 4, 4]}
+              hide={hiddenSeries.includes("high")}
             />
             <Bar
               dataKey="low"
               stackId="a"
               fill="var(--color-low)"
               radius={[4, 4, 0, 0]}
+              hide={hiddenSeries.includes("low")}
             />
           </BarChart>
         </ChartContainer>

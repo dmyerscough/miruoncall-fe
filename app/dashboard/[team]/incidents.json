@@ -109,7 +109,10 @@
         },
         {
             "actionable": null,
-            "annotation": null,
+            "annotation": {
+                "created_at": "Thu, 29 May 2025 06:37:19 GMT",
+                "summary": "We needed to deploy the failover connector as kratos was causing the pipeline to shit the bed and refuse metrics"
+            },
             "created_at": "Wed, 28 May 2025 00:33:10 GMT",
             "description": "We need tcarr/DGXOBSERV-1713 deployed ",
             "id": 14426,

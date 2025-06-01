@@ -1,6 +1,8 @@
 'use client'
 
 import * as React from 'react'
+import { LiaStickyNoteSolid } from 'react-icons/lia'
+
 import {
     closestCenter,
     DndContext,
@@ -76,8 +78,8 @@ const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
         id: 'drag',
         header: () => null,
         cell: ({ row }) => <DragHandle id={row.original.id} />,
-        minSize: 10,
-        maxSize: 10,
+        minSize: 15,
+        maxSize: 15,
     },
     {
         id: 'select',
@@ -97,23 +99,20 @@ const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
         ),
         enableSorting: false,
         enableHiding: false,
-        size: 0,
-        minSize: 0,
-        maxSize: 50,
+        minSize: 20,
+        maxSize: 20,
     },
     {
         accessorKey: 'title',
         header: 'Title',
         cell: ({ row }) => {
             return (
-                <div className="max-w-[300px]">
+                <div className="min-w-0 w-full">
                     <TableCellViewer item={row.original} />
                 </div>
             )
         },
         enableHiding: false,
-        size: 300,
-        minSize: 200,
     },
     {
         accessorKey: 'triggered',
@@ -134,9 +133,8 @@ const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
                 </div>
             )
         },
-        size: 120,
-        minSize: 100,
-        maxSize: 140,
+        minSize: 90,
+        maxSize: 90,
     },
     {
         accessorKey: 'status',
@@ -155,9 +153,8 @@ const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
                 </Badge>
             </div>
         ),
-        size: 130,
-        minSize: 110,
-        maxSize: 150,
+        minSize: 80,
+        maxSize: 80,
     },
     {
         accessorKey: 'urgency',
@@ -169,23 +166,15 @@ const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
                 </Badge>
             </div>
         ),
-        size: 80,
-        minSize: 70,
-        maxSize: 90,
+        minSize: 50,
+        maxSize: 50,
     },
     {
         accessorKey: 'annotation',
         header: 'Notes',
-        cell: ({ row }) => (
-            <div className="w-14">
-                <Badge variant="outline" className="text-muted-foreground px-1.5 whitespace-nowrap">
-                    {row.original.annotation ? 'Yes' : 'No'}
-                </Badge>
-            </div>
-        ),
-        size: 70,
-        minSize: 60,
-        maxSize: 80,
+        cell: ({ row }) => <div className="w-14">{row.original.annotation ? <LiaStickyNoteSolid /> : null}</div>,
+        minSize: 40,
+        maxSize: 40,
     },
 ]
 
@@ -260,6 +249,7 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof incident
         getFacetedRowModel: getFacetedRowModel(),
         getFacetedUniqueValues: getFacetedUniqueValues(),
         columnResizeMode: 'onChange',
+        enableColumnResizing: true,
         defaultColumn: {
             minSize: 50,
             maxSize: 500,
@@ -289,7 +279,7 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof incident
                             sensors={sensors}
                             id={sortableId}
                         >
-                            <Table style={{ minWidth: '760px' }}>
+                            <Table style={{ minWidth: '700px' }}>
                                 <TableHeader className="bg-muted sticky top-0 z-10">
                                     {table.getHeaderGroups().map((headerGroup) => (
                                         <TableRow key={headerGroup.id}>
@@ -417,8 +407,8 @@ function TableCellViewer({ item }: { item: z.infer<typeof incidentSchema> }) {
     return (
         <Drawer direction={isMobile ? 'bottom' : 'right'}>
             <DrawerTrigger asChild>
-                <Button variant="link" className="text-foreground w-fit px-0 text-left h-auto justify-start">
-                    <span className="truncate block max-w-[550px]" title={item.title}>
+                <Button variant="link" className="text-foreground w-full px-0 text-left h-auto justify-start min-w-0">
+                    <span className="truncate block w-full" title={item.title}>
                         {item.title}
                     </span>
                 </Button>

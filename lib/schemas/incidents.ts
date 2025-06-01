@@ -39,12 +39,13 @@ export const incidentSchema = z.object({
     urgency: z.enum(['low', 'high'], { message: "Urgency must be either 'low' or 'high'" }),
 })
 
-const dailySummarySchema = z.object({
-    high: z.number().int({ message: 'High count must be an integer' }),
-    low: z.number().int({ message: 'Low count must be an integer' }),
-})
-
-const blogSummarySchema = z.record(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date key must be in YYYY-MM-DD format'), dailySummarySchema)
+const summarySchema = z.record(
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date key must be in YYYY-MM-DD format'),
+    z.object({
+        high: z.number().int({ message: 'High count must be an integer' }),
+        low: z.number().int({ message: 'Low count must be an integer' }),
+    })
+)
 
 const teamSchema = z.object({
     alias: z.string().nullable(),
@@ -58,6 +59,6 @@ const teamSchema = z.object({
 
 export const incidentsSchema = z.object({
     incidents: z.array(incidentSchema),
-    summary: blogSummarySchema,
+    summary: summarySchema,
     team: teamSchema,
 })

@@ -76,6 +76,8 @@ const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
         id: 'drag',
         header: () => null,
         cell: ({ row }) => <DragHandle id={row.original.id} />,
+        minSize: 10,
+        maxSize: 10,
     },
     {
         id: 'select',
@@ -95,59 +97,95 @@ const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
         ),
         enableSorting: false,
         enableHiding: false,
+        size: 0,
+        minSize: 0,
+        maxSize: 50,
     },
     {
         accessorKey: 'title',
         header: 'Title',
         cell: ({ row }) => {
-            return <TableCellViewer item={row.original} />
+            return (
+                <div className="max-w-[300px]">
+                    <TableCellViewer item={row.original} />
+                </div>
+            )
         },
         enableHiding: false,
+        size: 300,
+        minSize: 200,
     },
     {
-        accessorKey: 'created_at',
-        header: 'Created At',
-        cell: ({ row }) => (
-            <div className="w-32">
-                <Badge variant="outline" className="text-muted-foreground px-1.5">
-                    {new Date(row.original.created_at).toLocaleDateString()}
-                </Badge>
-            </div>
-        ),
+        accessorKey: 'triggered',
+        header: 'Triggered',
+        cell: ({ row }) => {
+            const date = new Date(row.original.created_at)
+            const formattedDate = date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            })
+            return (
+                <div className="w-24">
+                    <Badge variant="outline" className="text-muted-foreground px-1.5 text-xs whitespace-nowrap">
+                        {formattedDate}
+                    </Badge>
+                </div>
+            )
+        },
+        size: 120,
+        minSize: 100,
+        maxSize: 140,
     },
     {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => (
-            <Badge variant="outline" className="text-muted-foreground px-1.5">
-                {row.original.status === 'resolved' ? (
-                    <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400" />
-                ) : row.original.status === 'acknowledged' ? (
-                    <IconLoader className="fill-yellow-500 dark:fill-yellow-400" />
-                ) : (
-                    <IconLoader className="fill-red-500 dark:fill-red-400" />
-                )}
-                {row.original.status}
-            </Badge>
+            <div className="w-[110px]">
+                <Badge variant="outline" className="text-muted-foreground px-1.5 gap-1 whitespace-nowrap">
+                    {row.original.status === 'resolved' ? (
+                        <IconCircleCheckFilled className="fill-green-500 dark:fill-green-400 size-3 shrink-0" />
+                    ) : row.original.status === 'acknowledged' ? (
+                        <IconLoader className="fill-yellow-500 dark:fill-yellow-400 size-3 shrink-0" />
+                    ) : (
+                        <IconLoader className="fill-red-500 dark:fill-red-400 size-3 shrink-0" />
+                    )}
+                    <span className="capitalize">{row.original.status}</span>
+                </Badge>
+            </div>
         ),
+        size: 130,
+        minSize: 110,
+        maxSize: 150,
     },
     {
         accessorKey: 'urgency',
         header: 'Urgency',
         cell: ({ row }) => (
-            <Badge variant={row.original.urgency === 'high' ? 'destructive' : 'secondary'} className="px-1.5">
-                {row.original.urgency}
-            </Badge>
+            <div className="w-16">
+                <Badge variant={row.original.urgency === 'high' ? 'destructive' : 'secondary'} className="px-1.5 capitalize whitespace-nowrap">
+                    {row.original.urgency}
+                </Badge>
+            </div>
         ),
+        size: 80,
+        minSize: 70,
+        maxSize: 90,
     },
     {
         accessorKey: 'annotation',
         header: 'Notes',
         cell: ({ row }) => (
-            <Badge variant="outline" className="text-muted-foreground px-1.5">
-                {row.original.annotation ? 'Yes' : 'No'}
-            </Badge>
+            <div className="w-14">
+                <Badge variant="outline" className="text-muted-foreground px-1.5 whitespace-nowrap">
+                    {row.original.annotation ? 'Yes' : 'No'}
+                </Badge>
+            </div>
         ),
+        size: 70,
+        minSize: 60,
+        maxSize: 80,
     },
 ]
 
@@ -168,7 +206,16 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof incidentSchema>> }) {
             }}
         >
             {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                <TableCell
+                    key={cell.id}
+                    style={{
+                        width: cell.column.getSize(),
+                        minWidth: cell.column.columnDef.minSize,
+                        maxWidth: cell.column.columnDef.maxSize,
+                    }}
+                >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
             ))}
         </TableRow>
     )
@@ -212,6 +259,11 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof incident
         getSortedRowModel: getSortedRowModel(),
         getFacetedRowModel: getFacetedRowModel(),
         getFacetedUniqueValues: getFacetedUniqueValues(),
+        columnResizeMode: 'onChange',
+        defaultColumn: {
+            minSize: 50,
+            maxSize: 500,
+        },
     })
 
     function handleDragEnd(event: DragEndEvent) {
@@ -229,44 +281,54 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof incident
         <Tabs defaultValue="outline" className="w-full flex-col justify-start gap-6">
             <TabsContent value="outline" className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
                 <div className="overflow-hidden rounded-lg border">
-                    <DndContext
-                        collisionDetection={closestCenter}
-                        modifiers={[restrictToVerticalAxis]}
-                        onDragEnd={handleDragEnd}
-                        sensors={sensors}
-                        id={sortableId}
-                    >
-                        <Table>
-                            <TableHeader className="bg-muted sticky top-0 z-10">
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map((header) => {
-                                            return (
-                                                <TableHead key={header.id} colSpan={header.colSpan}>
-                                                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                                                </TableHead>
-                                            )
-                                        })}
-                                    </TableRow>
-                                ))}
-                            </TableHeader>
-                            <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                                {table.getRowModel().rows?.length ? (
-                                    <SortableContext items={dataIds} strategy={verticalListSortingStrategy}>
-                                        {table.getRowModel().rows.map((row) => (
-                                            <DraggableRow key={row.id} row={row} />
-                                        ))}
-                                    </SortableContext>
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={columns.length} className="h-24 text-center">
-                                            No results.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </DndContext>
+                    <div className="overflow-x-auto">
+                        <DndContext
+                            collisionDetection={closestCenter}
+                            modifiers={[restrictToVerticalAxis]}
+                            onDragEnd={handleDragEnd}
+                            sensors={sensors}
+                            id={sortableId}
+                        >
+                            <Table style={{ minWidth: '760px' }}>
+                                <TableHeader className="bg-muted sticky top-0 z-10">
+                                    {table.getHeaderGroups().map((headerGroup) => (
+                                        <TableRow key={headerGroup.id}>
+                                            {headerGroup.headers.map((header) => {
+                                                return (
+                                                    <TableHead
+                                                        key={header.id}
+                                                        colSpan={header.colSpan}
+                                                        style={{
+                                                            width: header.getSize(),
+                                                            minWidth: header.column.columnDef.minSize,
+                                                            maxWidth: header.column.columnDef.maxSize,
+                                                        }}
+                                                    >
+                                                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                                    </TableHead>
+                                                )
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableHeader>
+                                <TableBody>
+                                    {table.getRowModel().rows?.length ? (
+                                        <SortableContext items={dataIds} strategy={verticalListSortingStrategy}>
+                                            {table.getRowModel().rows.map((row) => (
+                                                <DraggableRow key={row.id} row={row} />
+                                            ))}
+                                        </SortableContext>
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={columns.length} className="h-24 text-center">
+                                                No results.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </DndContext>
+                    </div>
                 </div>
                 <div className="flex items-center justify-between px-4">
                     <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
@@ -355,8 +417,10 @@ function TableCellViewer({ item }: { item: z.infer<typeof incidentSchema> }) {
     return (
         <Drawer direction={isMobile ? 'bottom' : 'right'}>
             <DrawerTrigger asChild>
-                <Button variant="link" className="text-foreground w-fit px-0 text-left">
-                    {item.title}
+                <Button variant="link" className="text-foreground w-fit px-0 text-left h-auto justify-start">
+                    <span className="truncate block max-w-[550px]" title={item.title}>
+                        {item.title}
+                    </span>
                 </Button>
             </DrawerTrigger>
             <DrawerContent>

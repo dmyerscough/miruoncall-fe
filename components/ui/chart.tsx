@@ -258,12 +258,14 @@ function ChartLegendContent({
   nameKey,
   onDataKeyClick,
   hiddenSeries = [],
+  showOnlySelected = false,
 }: {
   className?: string
   hideIcon?: boolean
   onDataKeyClick?: (dataKey: string) => void
   nameKey?: string
   hiddenSeries?: string[]
+  showOnlySelected?: boolean
 } & Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign">) {
   const { config } = useChart()
 
@@ -283,6 +285,7 @@ function ChartLegendContent({
         const key = `${nameKey || item.dataKey || "value"}`
         const itemConfig = getPayloadConfigFromPayload(config, item, key)
         const isHidden = hiddenSeries.includes(key)
+        const isSelected = showOnlySelected && !isHidden && hiddenSeries.length > 0
 
         return (
           <div
@@ -290,7 +293,8 @@ function ChartLegendContent({
             className={cn(
               "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
               onDataKeyClick && "cursor-pointer hover:opacity-80",
-              isHidden && "opacity-50"
+              isHidden && "opacity-50",
+              isSelected && "ring-1 ring-primary ring-offset-2 rounded-md px-2 py-1"
             )}
             onClick={() => onDataKeyClick?.(key)}
           >

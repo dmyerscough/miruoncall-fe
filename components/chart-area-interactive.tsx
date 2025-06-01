@@ -62,6 +62,7 @@ export function ChartAreaInteractive() {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("90d")
   const [hiddenSeries, setHiddenSeries] = React.useState<string[]>([])
+  const [selectedSeries, setSelectedSeries] = React.useState<string | null>(null)
   const [chartDimensions, setChartDimensions] = React.useState({ width: 0, height: 400 })
   const containerRef = React.useRef<HTMLDivElement>(null)
 
@@ -93,11 +94,18 @@ export function ChartAreaInteractive() {
   }, [])
 
   const handleLegendClick = (dataKey: string) => {
-    setHiddenSeries(prev =>
-      prev.includes(dataKey)
-        ? prev.filter(key => key !== dataKey)
-        : [...prev, dataKey]
-    )
+    // Get all available data keys from the chart data
+    const allDataKeys = Object.keys(chartData[0] || {}).filter(key => key !== 'date')
+
+    if (selectedSeries === dataKey) {
+      // If clicking the already selected series, show all series
+      setSelectedSeries(null)
+      setHiddenSeries([])
+    } else {
+      // Show only the selected series, hide all others
+      setSelectedSeries(dataKey)
+      setHiddenSeries(allDataKeys.filter(key => key !== dataKey))
+    }
   }
 
   return (
@@ -171,6 +179,7 @@ export function ChartAreaInteractive() {
                   payload={props.payload}
                   onDataKeyClick={handleLegendClick}
                   hiddenSeries={hiddenSeries}
+                  showOnlySelected={true}
                 />
               )}
             />

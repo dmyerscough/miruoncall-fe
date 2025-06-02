@@ -1,34 +1,29 @@
 import { z } from 'zod'
 
+const flexibleDatetime = z.string().transform((val, ctx) => {
+    // Try to parse the date string
+    const date = new Date(val)
+
+    if (isNaN(date.getTime())) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Invalid date format',
+        })
+        return z.NEVER
+    }
+
+    return date.toISOString()
+})
+
 const annotationSchema = z.object({
-    created_at: z.string().refine(
-        (val) => {
-            try {
-                new Date(val)
-                return /^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(val)
-            } catch {
-                return false
-            }
-        },
-        { message: "Invalid RFC 1123 date string for annotation.created_at. Expected format: 'Day, DD Mon YYYY HH:MM:SS GMT'" }
-    ),
+    created_at: flexibleDatetime,
     summary: z.string(),
 })
 
 export const incidentSchema = z.object({
     actionable: z.boolean().nullable(),
     annotation: annotationSchema.nullable(),
-    created_at: z.string().refine(
-        (val) => {
-            try {
-                new Date(val) // Check if it can be parsed by Date constructor
-                return /^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(val)
-            } catch {
-                return false
-            }
-        },
-        { message: "Invalid RFC 1123 date string for incident.created_at. Expected format: 'Day, DD Mon YYYY HH:MM:SS GMT'" }
-    ),
+    created_at: flexibleDatetime,
     description: z.string(),
     id: z.number().int({ message: 'ID must be an integer' }),
     incident_id: z.string(),
@@ -49,9 +44,9 @@ const summarySchema = z.record(
 
 const teamSchema = z.object({
     alias: z.string().nullable(),
-    created_at: z.string().datetime({ message: 'Invalid ISO 8601 date-time string for team.created_at' }),
+    created_at: flexibleDatetime,
     id: z.number().int({ message: 'Team ID must be an integer' }),
-    last_checked: z.string().datetime({ message: 'Invalid ISO 8601 date-time string for team.last_checked' }),
+    last_checked: flexibleDatetime,
     name: z.string(),
     summary: z.string(),
     team_id: z.string(),

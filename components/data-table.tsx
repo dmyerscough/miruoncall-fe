@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import { useMemo, useEffect, useState, useId } from 'react'
 import { LiaStickyNoteSolid } from 'react-icons/lia'
 
 import {
@@ -210,20 +210,36 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof incidentSchema>> }) {
     )
 }
 
-export function DataTable({ data: initialData }: { data: z.infer<typeof incidentSchema>[] }) {
-    const [data, setData] = React.useState(() => initialData)
-    const [rowSelection, setRowSelection] = React.useState({})
-    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-    const [sorting, setSorting] = React.useState<SortingState>([])
-    const [pagination, setPagination] = React.useState({
+interface DataTableProps {
+    data: z.infer<typeof incidentSchema>[]
+    urgencyFilter?: 'high' | 'low' | null
+}
+
+export function DataTable({ data: initialData, urgencyFilter }: DataTableProps) {
+    const [data, setData] = useState(() => initialData)
+    const [rowSelection, setRowSelection] = useState({})
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    const [sorting, setSorting] = useState<SortingState>([])
+    const [pagination, setPagination] = useState({
         pageIndex: 0,
         pageSize: 10,
     })
-    const sortableId = React.useId()
+    const sortableId = useId()
     const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}))
 
-    const dataIds = React.useMemo<UniqueIdentifier[]>(() => data?.map(({ id }) => id) || [], [data])
+    const dataIds = useMemo<UniqueIdentifier[]>(() => data?.map(({ id }) => id) || [], [data])
+
+    useEffect(() => {
+        if (urgencyFilter) {
+            setColumnFilters((prev) => {
+                const otherFilters = prev.filter((filter) => filter.id !== 'urgency')
+                return [...otherFilters, { id: 'urgency', value: urgencyFilter }]
+            })
+        } else {
+            setColumnFilters((prev) => prev.filter((filter) => filter.id !== 'urgency'))
+        }
+    }, [urgencyFilter])
 
     const table = useReactTable({
         data,

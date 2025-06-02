@@ -30,7 +30,7 @@ const chartConfig = {
 interface ChartAreaInteractiveProps {
     onLegendClick?: (dataKey: string) => void
     activeUrgencyFilter?: 'high' | 'low' | null
-    chartData: z.infer<typeof incidentsSchema>
+    chartData: z.infer<typeof incidentsSchema> | undefined
 }
 
 export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chartData }: ChartAreaInteractiveProps) {
@@ -68,14 +68,28 @@ export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chart
         }
     }, [])
 
+    useEffect(() => {
+        if (activeUrgencyFilter) {
+            const allDataKeys = ['high', 'low']
+            setHiddenSeries(allDataKeys.filter((key) => key !== activeUrgencyFilter))
+            setSelectedSeries(activeUrgencyFilter)
+        } else {
+            setHiddenSeries([])
+            setSelectedSeries(null)
+        }
+    }, [activeUrgencyFilter])
+
     // Transform the summary data into chart format
     const incidentSummaryFormatted = useMemo(() => {
+        if (!chartData?.summary) {
+            return []
+        }
         return Object.entries(chartData.summary).map(([date, values]) => ({
             date,
             high: values.high,
             low: values.low,
         }))
-    }, [])
+    }, [chartData])
 
     const handleLegendClick = (dataKey: string) => {
         if (onLegendClick) {
@@ -94,16 +108,22 @@ export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chart
         }
     }
 
-    useEffect(() => {
-        if (activeUrgencyFilter) {
-            const allDataKeys = ['high', 'low']
-            setHiddenSeries(allDataKeys.filter((key) => key !== activeUrgencyFilter))
-            setSelectedSeries(activeUrgencyFilter)
-        } else {
-            setHiddenSeries([])
-            setSelectedSeries(null)
-        }
-    }, [activeUrgencyFilter])
+    // Show loading state when no data is available - moved after all hooks
+    if (!chartData) {
+        return (
+            <Card className="@container/card">
+                <CardHeader>
+                    <CardTitle>Total Alerts</CardTitle>
+                    <CardDescription>Loading chart data...</CardDescription>
+                </CardHeader>
+                <CardContent ref={containerRef} className="px-2 pt-4 sm:px-6 sm:pt-6">
+                    <div className="flex h-96 items-center justify-center">
+                        <div className="text-muted-foreground">Loading...</div>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card className="@container/card">
@@ -111,8 +131,8 @@ export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chart
                 <CardTitle>Total Alerts</CardTitle>
                 <CardDescription>
                     <span className="hidden @[540px]/card:block">
-                        A total of <span className=" font-semibold">{chartData.incidents.length}</span> {chartData.incidents.length > 1 ? `alerts` : `alert`}{' '}
-                        were triggered during this time period.
+                        A total of <span className=" font-semibold">{chartData?.incidents?.length || 0}</span>{' '}
+                        {(chartData?.incidents?.length || 0) > 1 ? `alerts` : `alert`} were triggered during this time period.
                     </span>
                     <span className="@[540px]/card:hidden">Last 3 months</span>
                 </CardDescription>

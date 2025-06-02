@@ -230,6 +230,11 @@ export function DataTable({ data: initialData, urgencyFilter }: DataTableProps) 
 
     const dataIds = useMemo<UniqueIdentifier[]>(() => data?.map(({ id }) => id) || [], [data])
 
+    // Sync internal data state when initialData prop changes
+    useEffect(() => {
+        setData(initialData)
+    }, [initialData])
+
     useEffect(() => {
         if (urgencyFilter) {
             setColumnFilters((prev) => {

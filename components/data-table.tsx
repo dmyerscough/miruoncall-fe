@@ -61,6 +61,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Textarea } from './ui/textarea'
 
 import nextConfig from '@/next.config'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
 
 const { publicRuntimeConfig } = nextConfig
 
@@ -177,7 +178,32 @@ const createColumns = (teamId: string): ColumnDef<z.infer<typeof incidentSchema>
     {
         accessorKey: 'annotation',
         header: 'Notes',
-        cell: ({ row }) => <div className="w-14">{row.original.annotation ? <LiaStickyNoteSolid /> : null}</div>,
+        cell: ({ row }) => (
+            <div className="w-14">
+                {row.original.annotation ? (
+                    <>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <LiaStickyNoteSolid className="hover:cursor-pointer" />
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Notes</DialogTitle>
+                                    <DialogDescription>{row.original.annotation.summary}</DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter className="sm:justify-start">
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="secondary">
+                                            Close
+                                        </Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </>
+                ) : null}
+            </div>
+        ),
         minSize: 40,
         maxSize: 40,
     },

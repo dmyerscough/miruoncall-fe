@@ -136,7 +136,7 @@ export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chart
                     </span>
                     <span className="@[540px]/card:hidden">Last 3 months</span>
                 </CardDescription>
-                <CardAction>
+                {/* <CardAction>
                     <ToggleGroup
                         type="single"
                         value={timeRange}
@@ -168,7 +168,7 @@ export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chart
                             </SelectItem>
                         </SelectContent>
                     </Select>
-                </CardAction>
+                </CardAction> */}
             </CardHeader>
             <CardContent ref={containerRef} className="px-2 pt-4 sm:px-6 sm:pt-6">
                 <ChartContainer config={chartConfig} style={{ height: chartDimensions.height, width: '100%' }}>

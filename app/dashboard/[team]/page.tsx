@@ -87,7 +87,7 @@ function Dashboard({ params }: { params: { team: string } }) {
                         <div className="px-4 lg:px-6">
                             <ChartAreaInteractive onLegendClick={handleLegendClick} activeUrgencyFilter={urgencyFilter} chartData={data} />
                         </div>
-                        <DataTable data={data?.incidents || []} urgencyFilter={urgencyFilter} />
+                        <DataTable data={data?.incidents || []} urgencyFilter={urgencyFilter} teamId={data?.team.team_id} />
                     </div>
                 </div>
             </div>

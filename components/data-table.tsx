@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useEffect, useState, useId } from 'react'
+import { useMemo, useEffect, useState, useId, useRef } from 'react'
 import { LiaStickyNoteSolid } from 'react-icons/lia'
 
 import {
@@ -58,6 +58,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
+import { Textarea } from './ui/textarea'
+
+import nextConfig from '@/next.config'
+
+const { publicRuntimeConfig } = nextConfig
 
 // Create a separate component for the drag handle
 function DragHandle({ id }: { id: number }) {
@@ -73,7 +78,7 @@ function DragHandle({ id }: { id: number }) {
     )
 }
 
-const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
+const createColumns = (teamId: string): ColumnDef<z.infer<typeof incidentSchema>>[] => [
     {
         id: 'drag',
         header: () => null,
@@ -108,7 +113,7 @@ const columns: ColumnDef<z.infer<typeof incidentSchema>>[] = [
         cell: ({ row }) => {
             return (
                 <div className="min-w-0 w-full">
-                    <TableCellViewer item={row.original} />
+                    <TableCellViewer item={row.original} teamId={teamId} />
                 </div>
             )
         },
@@ -213,9 +218,10 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof incidentSchema>> }) {
 interface DataTableProps {
     data: z.infer<typeof incidentSchema>[]
     urgencyFilter?: 'high' | 'low' | null
+    teamId: string
 }
 
-export function DataTable({ data: initialData, urgencyFilter }: DataTableProps) {
+export function DataTable({ data: initialData, urgencyFilter, teamId }: DataTableProps) {
     const [data, setData] = useState(() => initialData)
     const [rowSelection, setRowSelection] = useState({})
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -228,6 +234,7 @@ export function DataTable({ data: initialData, urgencyFilter }: DataTableProps) 
     const sortableId = useId()
     const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}))
 
+    const columns = useMemo(() => createColumns(teamId), [teamId])
     const dataIds = useMemo<UniqueIdentifier[]>(() => data?.map(({ id }) => id) || [], [data])
 
     // Sync internal data state when initialData prop changes
@@ -422,8 +429,27 @@ export function DataTable({ data: initialData, urgencyFilter }: DataTableProps) 
     )
 }
 
-function TableCellViewer({ item }: { item: z.infer<typeof incidentSchema> }) {
+function TableCellViewer({ item, teamId }: { item: z.infer<typeof incidentSchema>; teamId: string }) {
     const isMobile = useIsMobile()
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+    // TODO(damian): Show a progress bar / toast when the annotation has been updated
+    const saveAnnotation = async (annotation: string, incidentId: string, teamId: string) => {
+        const req = await fetch(`${publicRuntimeConfig?.apiBackend}/api/v1/incident/${incidentId}_${teamId}/annotation`, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            method: 'POST',
+            body: JSON.stringify({ annotation: annotation }),
+        })
+
+        const resp = await req.json()
+
+        if (!req.ok) {
+            console.error('Error saving annotation:', resp)
+            return
+        }
+    }
 
     return (
         <Drawer direction={isMobile ? 'bottom' : 'right'}>
@@ -449,50 +475,19 @@ function TableCellViewer({ item }: { item: z.infer<typeof incidentSchema> }) {
                     <Separator />
                     <form className="flex flex-col gap-4">
                         <div className="flex flex-col gap-3">
-                            <Label htmlFor="title">Title</Label>
-                            <Input id="title" defaultValue={item.title} />
+                            <Label htmlFor="notes">Notes</Label>
+                            <Textarea id="notes" ref={textareaRef} defaultValue={item.annotation ? item.annotation.summary : ''} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="flex flex-col gap-3">
-                                <Label htmlFor="status">Status</Label>
-                                <Select defaultValue={item.status}>
-                                    <SelectTrigger id="status" className="w-full">
-                                        <SelectValue placeholder="Select a status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="triggered">Triggered</SelectItem>
-                                        <SelectItem value="acknowledged">Acknowledged</SelectItem>
-                                        <SelectItem value="resolved">Resolved</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex flex-col gap-3">
-                                <Label htmlFor="urgency">Urgency</Label>
-                                <Select defaultValue={item.urgency}>
-                                    <SelectTrigger id="urgency" className="w-full">
-                                        <SelectValue placeholder="Select urgency" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="low">Low</SelectItem>
-                                        <SelectItem value="high">High</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-3">
-                            <Label htmlFor="description">Description</Label>
-                            <Input id="description" defaultValue={item.description} />
-                        </div>
-                        {item.annotation && (
-                            <div className="flex flex-col gap-3">
-                                <Label htmlFor="annotation">Annotation</Label>
-                                <Input id="annotation" defaultValue={item.annotation.summary} />
-                            </div>
-                        )}
                     </form>
                 </div>
                 <DrawerFooter>
-                    <Button>Submit</Button>
+                    <Button
+                        onClick={() => {
+                            saveAnnotation(textareaRef?.current?.value || '', item.incident_id, teamId)
+                        }}
+                    >
+                        Submit
+                    </Button>
                     <DrawerClose asChild>
                         <Button variant="outline">Done</Button>
                     </DrawerClose>

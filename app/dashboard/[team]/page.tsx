@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { format } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { ChartAreaInteractive } from '@/components/chart-area-interactive'
@@ -15,10 +15,8 @@ import { incidentsSchema } from '@/lib/schemas/incidents'
 
 const { publicRuntimeConfig } = nextConfig
 
-const fetchIncidents = async (since?: string, until?: string) => {
-    // get the data from the api
+const fetchIncidents = async (teamId: string, since?: string, until?: string) => {
     try {
-        // Calculate default dates: now - 7 days to now
         const today = new Date()
         const lastWeek = new Date()
         lastWeek.setDate(today.getDate() - 7)
@@ -26,7 +24,7 @@ const fetchIncidents = async (since?: string, until?: string) => {
         const defaultSince = format(lastWeek, 'yyyy-MM-dd')
         const defaultUntil = format(today, 'yyyy-MM-dd')
 
-        const req = await fetch(`${publicRuntimeConfig?.apiBackend}/${publicRuntimeConfig?.allIncidentsEndpoint}/98`, {
+        const req = await fetch(`${publicRuntimeConfig?.apiBackend}/${publicRuntimeConfig?.allIncidentsEndpoint}/${teamId}`, {
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -52,7 +50,9 @@ const fetchIncidents = async (since?: string, until?: string) => {
     }
 }
 
-function Dashboard({ params }: { params: { team: string } }) {
+function Dashboard({ params }: { params: Promise<{ team: string }> }) {
+    const { team } = use(params)
+
     // State for fetched data and urgency filter
     const [data, setData] = useState<z.infer<typeof incidentsSchema> | undefined>()
     const [urgencyFilter, setUrgencyFilter] = useState<'high' | 'low' | null>(null)
@@ -61,7 +61,7 @@ function Dashboard({ params }: { params: { team: string } }) {
     const loadIncidents = async (since?: string, until?: string) => {
         setIsLoading(true)
         try {
-            const fetchedData = await fetchIncidents(since, until)
+            const fetchedData = await fetchIncidents(team, since, until)
             if (fetchedData) {
                 setData(incidentsSchema.parse(fetchedData))
             }

@@ -9,8 +9,7 @@ import { z } from 'zod'
 
 import nextConfig from '@/next.config'
 
-import { incidentSchema, incidentsSchema } from '@/lib/schemas/incidents'
-// import rawData from './incidents.json'
+import { incidentsSchema } from '@/lib/schemas/incidents'
 
 const { publicRuntimeConfig } = nextConfig
 

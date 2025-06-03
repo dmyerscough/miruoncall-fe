@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
+import { DateRange } from 'react-day-picker'
 import { ChartAreaInteractive } from '@/components/chart-area-interactive'
 import { DataTable } from '@/components/data-table'
 import { SiteHeader } from '@/components/site-header'
@@ -13,19 +15,26 @@ import { incidentsSchema } from '@/lib/schemas/incidents'
 
 const { publicRuntimeConfig } = nextConfig
 
-const fetchIncidents = async () => {
-    // if (!dateRange?.to || !dateRange?.from) {
-    //     return
-    // }
-
+const fetchIncidents = async (since?: string, until?: string) => {
     // get the data from the api
     try {
+        // Calculate default dates: now - 7 days to now
+        const today = new Date()
+        const lastWeek = new Date()
+        lastWeek.setDate(today.getDate() - 7)
+
+        const defaultSince = format(lastWeek, 'yyyy-MM-dd')
+        const defaultUntil = format(today, 'yyyy-MM-dd')
+
         const req = await fetch(`${publicRuntimeConfig?.apiBackend}/${publicRuntimeConfig?.allIncidentsEndpoint}/98`, {
             headers: {
                 'Content-Type': 'application/json',
             },
             method: 'POST',
-            body: JSON.stringify({ since: '2025-05-26', until: '2025-06-02' }),
+            body: JSON.stringify({
+                since: since || defaultSince,
+                until: until || defaultUntil,
+            }),
         })
 
         const resp = await req.json()
@@ -43,32 +52,43 @@ const fetchIncidents = async () => {
     }
 }
 
-//   useEffect(() => {
-//     fetchIncidents();
-//   }, [dateRange]);
-
 function Dashboard({ params }: { params: { team: string } }) {
     // State for fetched data and urgency filter
     const [data, setData] = useState<z.infer<typeof incidentsSchema> | undefined>()
     const [urgencyFilter, setUrgencyFilter] = useState<'high' | 'low' | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
-    useEffect(() => {
-        const loadIncidents = async () => {
-            setIsLoading(true)
-            try {
-                const fetchedData = await fetchIncidents()
-                if (fetchedData) {
-                    setData(incidentsSchema.parse(fetchedData))
-                }
-            } catch (error) {
-                console.error('Failed to load incidents:', error)
-            } finally {
-                setIsLoading(false)
+    const loadIncidents = async (since?: string, until?: string) => {
+        setIsLoading(true)
+        try {
+            const fetchedData = await fetchIncidents(since, until)
+            if (fetchedData) {
+                setData(incidentsSchema.parse(fetchedData))
             }
+        } catch (error) {
+            console.error('Failed to load incidents:', error)
+        } finally {
+            setIsLoading(false)
         }
+    }
 
-        loadIncidents()
+    const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
+        if (newDateRange?.from && newDateRange?.to) {
+            const since = format(newDateRange.from, 'yyyy-MM-dd')
+            const until = format(newDateRange.to, 'yyyy-MM-dd')
+            loadIncidents(since, until)
+        }
+    }
+
+    useEffect(() => {
+        // Load data with default date range (last 7 days)
+        const today = new Date()
+        const lastWeek = new Date().setDate(today.getDate() - 7)
+
+        const since = format(lastWeek, 'yyyy-MM-dd')
+        const until = format(today, 'yyyy-MM-dd')
+
+        loadIncidents(since, until)
     }, [])
 
     const handleLegendClick = (dataKey: string) => {
@@ -84,9 +104,14 @@ function Dashboard({ params }: { params: { team: string } }) {
                 <div className="@container/main flex flex-1 flex-col gap-2">
                     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
                         <div className="px-4 lg:px-6">
-                            <ChartAreaInteractive onLegendClick={handleLegendClick} activeUrgencyFilter={urgencyFilter} chartData={data} />
+                            <ChartAreaInteractive
+                                onLegendClick={handleLegendClick}
+                                activeUrgencyFilter={urgencyFilter}
+                                chartData={data}
+                                onDateRangeChange={handleDateRangeChange}
+                            />
                         </div>
-                        <DataTable data={data?.incidents || []} urgencyFilter={urgencyFilter} teamId={data?.team.team_id} />
+                        <DataTable data={data?.incidents || []} urgencyFilter={urgencyFilter} teamId={data?.team?.team_id || ''} />
                     </div>
                 </div>
             </div>

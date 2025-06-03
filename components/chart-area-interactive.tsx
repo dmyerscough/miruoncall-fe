@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { DateRange } from 'react-day-picker'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { differenceInCalendarDays, parseISO } from 'date-fns'
 
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -84,6 +85,17 @@ export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chart
         }))
     }, [chartData])
 
+    // Calculate if date range is greater than 7 days for X-axis label rotation
+    const shouldRotateLabels = useMemo(() => {
+        if (incidentSummaryFormatted.length === 0) return false
+
+        const dates = incidentSummaryFormatted.map((item) => parseISO(item.date))
+        const firstDate = Math.min(...dates.map((date) => date.getTime()))
+        const lastDate = Math.max(...dates.map((date) => date.getTime()))
+
+        return differenceInCalendarDays(new Date(lastDate), new Date(firstDate)) > 7
+    }, [incidentSummaryFormatted])
+
     const handleLegendClick = (dataKey: string) => {
         if (onLegendClick) {
             onLegendClick(dataKey)
@@ -136,7 +148,15 @@ export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chart
                 <ChartContainer config={chartConfig} style={{ height: chartDimensions.height, width: '100%' }}>
                     <BarChart accessibilityLayer data={incidentSummaryFormatted} width={chartDimensions.width} height={chartDimensions.height}>
                         <CartesianGrid vertical={false} />
-                        <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
+                        <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            tickMargin={10}
+                            axisLine={false}
+                            angle={shouldRotateLabels ? -45 : 0}
+                            textAnchor={shouldRotateLabels ? 'end' : 'middle'}
+                            height={shouldRotateLabels ? 80 : 30}
+                        />
                         <YAxis tickLine={false} axisLine={false} tickMargin={10} />
                         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                         <ChartLegend

@@ -133,7 +133,7 @@ export function ChartAreaInteractive({ onLegendClick, activeUrgencyFilter, chart
     return (
         <Card className="@container/card">
             <CardHeader>
-                <CardTitle>Total Alerts</CardTitle>
+                <CardTitle>Total Alerts for {chartData?.team.name}</CardTitle>
                 <CardDescription>
                     <span className="hidden @[540px]/card:block">
                         A total of <span className=" font-semibold">{chartData?.incidents?.length || 0}</span>{' '}

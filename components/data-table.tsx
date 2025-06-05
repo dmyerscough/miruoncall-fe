@@ -499,7 +499,6 @@ function TableCellViewer({ item, teamId }: { item: ConsolidatedIncident; teamId:
 
     const [isLoading, setIsLoading] = useState(false)
 
-    // TODO(damian): Show a progress bar / toast when the annotation has been updated
     const saveAnnotation = async (annotation: string, incidentId: string, teamId: string) => {
         try {
             const req = await fetch(`${publicRuntimeConfig?.apiBackend}/api/v1/incident/${incidentId}_${teamId}/annotation`, {

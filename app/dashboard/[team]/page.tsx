@@ -12,6 +12,7 @@ import { z } from 'zod'
 import nextConfig from '@/next.config'
 
 import { incidentsSchema } from '@/lib/schemas/incidents'
+import { toast } from 'sonner'
 
 const { publicRuntimeConfig } = nextConfig
 
@@ -40,13 +41,7 @@ const fetchIncidents = async (teamId: string, since?: string, until?: string) =>
         return incidentsSchema.parse(resp)
     } catch (error) {
         console.error('Error fetching incidents:', error)
-        // Fallback to rawData if API fails
-        // return incidentsSchema.parse(rawData)
-        //   toast({
-        //     variant: 'destructive',
-        //     title: 'Uh oh! Something went wrong.',
-        //     description: `${error.message}`,
-        //   });
+        toast.error('Failed to load incidents. Please try again later.', { position: 'top-center', duration: 3000 })
     }
 }
 

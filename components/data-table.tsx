@@ -520,6 +520,7 @@ function TableCellViewer({ item, teamId }: { item: ConsolidatedIncident; teamId:
             toast.success('Annotation saved successfully', { position: 'top-center', duration: 3000 })
         } catch (error) {
             console.error('Error saving annotation:', error)
+            toast.error('Failed to save annotation', { position: 'top-center', duration: 3000 })
         } finally {
             setIsLoading(false)
         }

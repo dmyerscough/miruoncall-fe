@@ -79,7 +79,7 @@ function DragHandle({ id }: { id: number }) {
     )
 }
 
-const createColumns = (teamId: string): ColumnDef<z.infer<typeof incidentSchema>>[] => [
+const createColumns = (teamId: string): ColumnDef<ConsolidatedIncident>[] => [
     {
         id: 'drag',
         header: () => null,
@@ -113,8 +113,15 @@ const createColumns = (teamId: string): ColumnDef<z.infer<typeof incidentSchema>
         header: 'Title',
         cell: ({ row }) => {
             return (
-                <div className="min-w-0 w-full">
-                    <TableCellViewer item={row.original} teamId={teamId} />
+                <div className="min-w-0 w-full flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                        <TableCellViewer item={row.original} teamId={teamId} />
+                    </div>
+                    {row.original.count > 1 && (
+                        <Badge variant="secondary" className="shrink-0 px-1.5 text-xs">
+                            {row.original.count}x
+                        </Badge>
+                    )}
                 </div>
             )
         },
@@ -209,7 +216,7 @@ const createColumns = (teamId: string): ColumnDef<z.infer<typeof incidentSchema>
     },
 ]
 
-function DraggableRow({ row }: { row: Row<z.infer<typeof incidentSchema>> }) {
+function DraggableRow({ row }: { row: Row<ConsolidatedIncident> }) {
     const { transform, transition, setNodeRef, isDragging } = useSortable({
         id: row.original.id,
     })
@@ -241,6 +248,35 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof incidentSchema>> }) {
     )
 }
 
+// Type for consolidated incident data
+type ConsolidatedIncident = z.infer<typeof incidentSchema> & {
+    occurrences: z.infer<typeof incidentSchema>[]
+    count: number
+}
+
+// Function to consolidate incidents by title
+function consolidateIncidents(incidents: z.infer<typeof incidentSchema>[]): ConsolidatedIncident[] {
+    const titleGroups = new Map<string, z.infer<typeof incidentSchema>[]>()
+
+    // Group incidents by title
+    incidents.forEach((incident) => {
+        const existing = titleGroups.get(incident.title) || []
+        titleGroups.set(incident.title, [...existing, incident])
+    })
+
+    // Convert groups to consolidated incidents
+    return Array.from(titleGroups.entries()).map(([title, occurrences]) => {
+        // Use the most recent incident as the primary
+        const primary = occurrences.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+
+        return {
+            ...primary,
+            occurrences,
+            count: occurrences.length,
+        }
+    })
+}
+
 interface DataTableProps {
     data: z.infer<typeof incidentSchema>[]
     urgencyFilter?: 'high' | 'low' | null
@@ -248,7 +284,7 @@ interface DataTableProps {
 }
 
 export function DataTable({ data: initialData, urgencyFilter, teamId }: DataTableProps) {
-    const [data, setData] = useState(() => initialData)
+    const [data, setData] = useState<ConsolidatedIncident[]>(() => consolidateIncidents(initialData))
     const [rowSelection, setRowSelection] = useState({})
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -265,7 +301,7 @@ export function DataTable({ data: initialData, urgencyFilter, teamId }: DataTabl
 
     // Sync internal data state when initialData prop changes
     useEffect(() => {
-        setData(initialData)
+        setData(consolidateIncidents(initialData))
     }, [initialData])
 
     useEffect(() => {
@@ -455,7 +491,7 @@ export function DataTable({ data: initialData, urgencyFilter, teamId }: DataTabl
     )
 }
 
-function TableCellViewer({ item, teamId }: { item: z.infer<typeof incidentSchema>; teamId: string }) {
+function TableCellViewer({ item, teamId }: { item: ConsolidatedIncident; teamId: string }) {
     const isMobile = useIsMobile()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -480,7 +516,7 @@ function TableCellViewer({ item, teamId }: { item: z.infer<typeof incidentSchema
     return (
         <Drawer direction={isMobile ? 'bottom' : 'right'}>
             <DrawerTrigger asChild>
-                <Button variant="link" className="text-foreground w-full px-0 text-left h-auto justify-start min-w-0">
+                <Button variant="link" className="text-foreground px-0 text-left h-auto justify-start min-w-0 max-w-full">
                     <span className="truncate block w-full" title={item.title}>
                         {item.title}
                     </span>
@@ -489,15 +525,53 @@ function TableCellViewer({ item, teamId }: { item: z.infer<typeof incidentSchema
             <DrawerContent>
                 <DrawerHeader className="gap-1">
                     <DrawerTitle>{item.title}</DrawerTitle>
-                    <DrawerDescription>Incident Details - {item.incident_id}</DrawerDescription>
                 </DrawerHeader>
                 <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-                    <div className="grid gap-2">
-                        <div className="flex gap-2 leading-none font-medium">
-                            Status: {item.status} | Urgency: {item.urgency}
-                        </div>
+                    {/* <div className="grid gap-2">
                         <div className="text-muted-foreground">{item.description}</div>
-                    </div>
+                    </div> */}
+
+                    {item.count > 1 && (
+                        <>
+                            <Separator />
+                            <div className="grid gap-3">
+                                <h4 className="font-medium">All Occurrences ({item.count})</h4>
+                                <div className="space-y-2 max-h-32 overflow-y-auto">
+                                    {item.occurrences.map((occurrence, index) => {
+                                        const date = new Date(occurrence.created_at)
+                                        const formattedDate = date.toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        })
+                                        return (
+                                            <div key={occurrence.id} className="flex items-center justify-between py-1 text-xs">
+                                                <span className="text-muted-foreground">#{index + 1}</span>
+                                                <Badge variant="outline" className="text-muted-foreground">
+                                                    {formattedDate}
+                                                </Badge>
+                                                <Badge
+                                                    variant={
+                                                        occurrence.status === 'resolved'
+                                                            ? 'secondary'
+                                                            : occurrence.status === 'acknowledged'
+                                                            ? 'default'
+                                                            : 'destructive'
+                                                    }
+                                                    className="text-xs"
+                                                >
+                                                    {occurrence.status}
+                                                </Badge>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
                     <Separator />
                     <form className="flex flex-col gap-4">
                         <div className="flex flex-col gap-3">

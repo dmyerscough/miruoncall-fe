@@ -62,6 +62,8 @@ import { Textarea } from './ui/textarea'
 
 import nextConfig from '@/next.config'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
+import { LoaderPinwheel } from 'lucide-react'
+import { toast } from 'sonner'
 
 const { publicRuntimeConfig } = nextConfig
 
@@ -495,21 +497,31 @@ function TableCellViewer({ item, teamId }: { item: ConsolidatedIncident; teamId:
     const isMobile = useIsMobile()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+    const [isLoading, setIsLoading] = useState(false)
+
     // TODO(damian): Show a progress bar / toast when the annotation has been updated
     const saveAnnotation = async (annotation: string, incidentId: string, teamId: string) => {
-        const req = await fetch(`${publicRuntimeConfig?.apiBackend}/api/v1/incident/${incidentId}_${teamId}/annotation`, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            method: 'POST',
-            body: JSON.stringify({ annotation: annotation }),
-        })
+        try {
+            const req = await fetch(`${publicRuntimeConfig?.apiBackend}/api/v1/incident/${incidentId}_${teamId}/annotation`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                method: 'POST',
+                body: JSON.stringify({ annotation: annotation }),
+            })
 
-        const resp = await req.json()
+            const resp = await req.json()
 
-        if (!req.ok) {
-            console.error('Error saving annotation:', resp)
-            return
+            if (!req.ok) {
+                console.error('Error saving annotation:', resp)
+                return
+            }
+
+            toast.success('Annotation saved successfully', { position: 'top-center', duration: 3000 })
+        } catch (error) {
+            console.error('Error saving annotation:', error)
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -584,12 +596,17 @@ function TableCellViewer({ item, teamId }: { item: ConsolidatedIncident; teamId:
                     <Button
                         onClick={() => {
                             saveAnnotation(textareaRef?.current?.value || '', item.incident_id, teamId)
+                            setIsLoading(true)
                         }}
+                        disabled={isLoading}
                     >
+                        {isLoading && <LoaderPinwheel className="w-4 h-4 animate-spin mr-2" />}
                         Submit
                     </Button>
                     <DrawerClose asChild>
-                        <Button variant="outline">Done</Button>
+                        <Button variant="outline" disabled={isLoading}>
+                            Done
+                        </Button>
                     </DrawerClose>
                 </DrawerFooter>
             </DrawerContent>

@@ -5,7 +5,6 @@ import { DateRange } from 'react-day-picker'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 
-import { useIsMobile } from '@/hooks/use-mobile'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 

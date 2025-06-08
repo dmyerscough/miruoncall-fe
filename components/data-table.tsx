@@ -50,9 +50,8 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
+import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
@@ -134,11 +133,12 @@ const createColumns = (teamId: string): ColumnDef<ConsolidatedIncident>[] => [
         header: 'Triggered',
         cell: ({ row }) => {
             const date = new Date(row.original.created_at)
-            const formattedDate = date.toLocaleDateString('en-US', {
+            const formattedDate = date.toLocaleString('en-US', {
                 month: 'short',
                 day: 'numeric',
-                hour: '2-digit',
+                hour: 'numeric',
                 minute: '2-digit',
+                hour12: true,
             })
             return (
                 <div className="w-24">
@@ -268,7 +268,6 @@ function consolidateIncidents(incidents: z.infer<typeof incidentSchema>[]): Cons
 
     // Convert groups to consolidated incidents
     return Array.from(titleGroups.entries()).map(([title, occurrences]) => {
-        // Use the most recent incident as the primary
         const primary = occurrences.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
 
         return {

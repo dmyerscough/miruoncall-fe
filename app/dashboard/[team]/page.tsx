@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
-import { format } from 'date-fns'
+import { useState, useEffect, useCallback, use } from 'react'
 import { DateRange } from 'react-day-picker'
 import { ChartAreaInteractive } from '@/components/chart-area-interactive'
 import { DataTable } from '@/components/data-table'
@@ -9,12 +8,8 @@ import { SiteHeader } from '@/components/site-header'
 
 import { z } from 'zod'
 
-import nextConfig from '@/next.config'
-
 import { incidentsSchema } from '@/lib/schemas/incidents'
 import { toast } from 'sonner'
-
-const { publicRuntimeConfig } = nextConfig
 
 const fetchIncidents = async (teamId: string, since: Date, until: Date) => {
     try {
@@ -24,7 +19,8 @@ const fetchIncidents = async (teamId: string, since: Date, until: Date) => {
         const untilDate = new Date(until)
         untilDate.setHours(23, 59, 59, 999)
 
-        const req = await fetch(`${publicRuntimeConfig?.apiBackend}/${publicRuntimeConfig?.allIncidentsEndpoint}/${teamId}`, {
+        // Use the Next.js API route instead of direct backend call
+        const req = await fetch(`/api/incidents/${teamId}`, {
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -62,25 +58,28 @@ function Dashboard({ params }: { params: Promise<{ team: string }> }) {
     // State for fetched data and urgency filter
     const [data, setData] = useState<z.infer<typeof incidentsSchema> | undefined>()
     const [urgencyFilter, setUrgencyFilter] = useState<'high' | 'low' | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    // const [isLoading, setIsLoading] = useState(true)
 
-    const loadIncidents = async (since: Date, until: Date) => {
-        setIsLoading(true)
-        try {
-            const fetchedData = await fetchIncidents(team, since, until)
-            if (fetchedData && fetchedData.incidents && fetchedData.summary && fetchedData.team) {
-                setData(fetchedData)
-            } else {
-                console.warn('Incomplete data received from API:', fetchedData)
-                toast.error('Received incomplete data from server. Please try again.', { position: 'top-center', duration: 3000 })
+    const loadIncidents = useCallback(
+        async (since: Date, until: Date) => {
+            // setIsLoading(true)
+            try {
+                const fetchedData = await fetchIncidents(team, since, until)
+                if (fetchedData && fetchedData.incidents && fetchedData.summary && fetchedData.team) {
+                    setData(fetchedData)
+                } else {
+                    console.warn('Incomplete data received from API:', fetchedData)
+                    toast.error('Received incomplete data from server. Please try again.', { position: 'top-center', duration: 3000 })
+                }
+            } catch (error) {
+                console.error('Failed to load incidents:', error)
+                toast.error('Failed to load incidents. Please check your connection and try again.', { position: 'top-center', duration: 3000 })
+            } finally {
+                // setIsLoading(false)
             }
-        } catch (error) {
-            console.error('Failed to load incidents:', error)
-            toast.error('Failed to load incidents. Please check your connection and try again.', { position: 'top-center', duration: 3000 })
-        } finally {
-            setIsLoading(false)
-        }
-    }
+        },
+        [team]
+    )
 
     const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
         if (newDateRange?.from && newDateRange?.to) {
@@ -111,7 +110,7 @@ function Dashboard({ params }: { params: Promise<{ team: string }> }) {
         untilDate.setHours(23, 59, 59, 999)
 
         loadIncidents(sinceDate, untilDate)
-    }, [])
+    }, [loadIncidents])
 
     const handleLegendClick = (dataKey: string) => {
         if (dataKey === 'high' || dataKey === 'low') {

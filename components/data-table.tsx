@@ -267,7 +267,7 @@ function consolidateIncidents(incidents: z.infer<typeof incidentSchema>[]): Cons
     })
 
     // Convert groups to consolidated incidents
-    return Array.from(titleGroups.entries()).map(([title, occurrences]) => {
+    return Array.from(titleGroups.values()).map((occurrences) => {
         const primary = occurrences.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
 
         return {
